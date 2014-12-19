@@ -1,11 +1,8 @@
 <?php namespace Gallettigr\Calendario;
 
-use \Debugbar;
-use \HTML;
-
 class Calendario {
-  private $day_lbls = array('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');
-  private $month_lbls = array('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December');
+  private $day_lbls = array('L', 'M', 'M', 'G', 'V', 'S', 'D');
+  private $month_lbls = array('Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre');
   private $days_month = array(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
   private $week_days = array();
   private $day;
@@ -14,27 +11,21 @@ class Calendario {
   private $events = FALSE;
   private $start_hour = 8;
   private $end_hour = 20;
-
-  private $nav = TRUE;
-
+  private $nav = false;
   private $view = 'month';
-
   private $html = "";
-
-  //WRAPS AND CSS
   private $tableClass = 'table table-calendar';
-  private $headClass = '';
-
+  private $headClass = 'header';
   private $prevIco = '<';
   private $nextIco = '>';
-  private $prevClass = 'cal_prev';
-  private $nextClass = 'cal_next';
+  private $prevClass = 'cal-prev';
+  private $nextClass = 'cal-next';
   private $basePath = "/";
 
   private $timeClass = 'ctime';
-  private $dayWrap = array('<div class="cal_day">', '</div>');
+  private $dayWrap = array('<div class="day">', '</div>');
   private $dateWrap = array('<div class="date">', '</div>');
-  private $labelsClass = 'cal_labels';
+  private $labelsClass = 'labels';
   private $eventWrap = array('<p>', '</p>');
   private $eventDayClass = 'event-date';
   private $tableAttributes = null;
@@ -194,7 +185,7 @@ class Calendario {
   private function buildHeader() {
     $month_name = $this->month_lbls[$this->month - 1] . ' ' . $this->year;
     $vclass = strtolower($this->view);
-    $h = '<table class="'.$this->tableClass.' '.$vclass.'" '.$this->tableAttributes.'>';
+    $h = '<table class="'.$this->tableClass.' '.$this->year.' '.$this->month.'" '.$this->tableAttributes.'>';
     $h .= "<thead>";
     $h .= "<tr class='" . $this->headClass . "'>";
     $cs = 5;
