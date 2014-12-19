@@ -1,8 +1,10 @@
 <?php namespace Gallettigr\Calendario;
 
-class Calendario {
+use \Debugbar;
+use \HTML;
 
-  private $day_lbls = array('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat');
+class Calendario {
+  private $day_lbls = array('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');
   private $month_lbls = array('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December');
   private $days_month = array(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
   private $week_days = array();
@@ -34,6 +36,8 @@ class Calendario {
   private $dateWrap = array('<div class="date">', '</div>');
   private $labelsClass = 'cal_labels';
   private $eventWrap = array('<p>', '</p>');
+  private $eventDayClass = 'event-date';
+  private $tableAttributes = null;
 
   private $today;
 
@@ -136,6 +140,11 @@ class Calendario {
     return $this;
   }
 
+  public function setEventDayClass($wrap) {
+    $this->eventDayClass = $wrap;
+    return $this;
+  }
+
   public function setNextIcon($html) {
     $this->nextIco = $html;
     return $this;
@@ -176,10 +185,16 @@ class Calendario {
     return $this;
   }
 
+  public function setAttributes(array $attributes)
+  {
+    $this->tableAttributes = HTML::attributes($attributes);
+    return $this;
+  }
+
   private function buildHeader() {
     $month_name = $this->month_lbls[$this->month - 1] . ' ' . $this->year;
     $vclass = strtolower($this->view);
-    $h = "<table class='" . $this->tableClass . " " . $vclass . "'>";
+    $h = '<table class="'.$this->tableClass.' '.$vclass.'" '.$this->tableAttributes.'>';
     $h .= "<thead>";
     $h .= "<tr class='" . $this->headClass . "'>";
     $cs = 5;
@@ -189,14 +204,14 @@ class Calendario {
       $cs = 1;
 
     if ($this->nav) {
-      $h .= "<th>";
+      $h .= "<th colspan='7' class='text-center'>";
+      $h .= "<div class='pull-left'>";
       $h .= "<a class='" . $this->prevClass . "' href='" . $this->prevLink() . "'>" . $this->prevIco . "</a>";
-      $h .= "</th>";
-      $h .= "<th colspan='$cs'>";
+      $h .= "</div>";
       $h .= $month_name;
-      $h .= "</th>";
-      $h .= "<th>";
+      $h .= "<div class='pull-right'>";
       $h .= "<a class='" . $this->nextClass . "' href='" . $this->nextLink() . "'>" . $this->nextIco . "</a>";
+      $h .= "</div>";
       $h .= "</th>";
     } else {
       $h .= "<th colspan='7'>";
@@ -211,7 +226,7 @@ class Calendario {
       $h .= "<tr class='" . $this->labelsClass . "'>";
 
       for ($i = 0; $i <= 6; $i++) {
-        $h .= "<td>";
+        $h .= "<td width='150'>";
         $h .= $this->day_lbls[$i];
         $h .= "</td>";
       }
@@ -265,6 +280,24 @@ class Calendario {
     return $h;
   }
 
+  public function dayClass($curr_date)
+  {
+    if ( ! is_array($this->events)) {
+      return null;
+    }
+
+    $class = null;
+
+    if (isset($this->events[$curr_date])) {
+      $class = (isset($this->events[$curr_date]['class']))
+        ? $this->events[$curr_date]['class']
+        : $this->eventDayClass;
+      unset($this->events[$curr_date]['class']);
+    }
+
+    return $class;
+  }
+
   private function buildBody() {
     $day = 1;
     $now_date = $this->year . '-' . $this->month . '-01';
@@ -272,21 +305,25 @@ class Calendario {
 
     $monthLength = $this->days_month[$this->month - 1];
     $h = "<tr>";
-    for ($i = $startingDay == 7 ? 1 : 0; $i < 9; $i++) {
-      for ($j = 0; $j <= 6; $j++) {
+    for ($i = 0; $i < 9; $i++) {
+      for ($j = 1; $j <= 7; $j++) {
         $curr_date = $this->getDayDate($day);
         $is_today = "";
         if ($curr_date == $this->today)
-          $is_today = "class='today'";
-        $h .= "<td data-datetime='$curr_date' $is_today>";
-        $h .= $this->dateWrap[0];
+          $is_today = "today";
+        // dump($curr_date);
         if ($day <= $monthLength && ($i > 0 || $j >= $startingDay)) {
+          $event_day_class = $this->dayClass($curr_date);
+          $h .= "<td data-datetime='$curr_date' class='$event_day_class $is_today'>";
+          $h .= $this->dateWrap[0];
           $h .= $this->dayWrap[0];
           $h .= $day;
           $h .= $this->dayWrap[1];
           $h .= $this->buildEvents($curr_date);
           $day++;
         } else {
+          $h .= "<td>";
+          $h .= $this->dateWrap[0];
           $h .= "&nbsp;";
         }
         $h .= $this->dateWrap[1];
@@ -322,18 +359,27 @@ class Calendario {
           $time_1 = strtotime($time_r . $min);
           $time_2 = strtotime(date('Y-m-d H:i:s', $time_1) . '+30 minute');
           $dt = date('Y-m-d H:i:s', $time_1);
-          $h .= "<td colspan='3' data-datetime='$dt'>";
-          $h .= $this->dateWrap[0];
 
           $hasEvent = FALSE;
+          $evnts = '';
+          $ev_class = '';
           foreach ($events as $key=>$event) {
             //EVENT TIME AND DATE
             $time_e = strtotime($key);
             if ($time_e >= $time_1 && $time_e < $time_2) {
               $hasEvent = TRUE;
-              $h .= $this->buildEvents(FALSE, $event);
+              if (isset($event['class'])) {
+                $ev_class = $event['class'];
+                unset($event['class']);
+              }
+              $evnts .= $this->buildEvents(FALSE, $event);
             }
           }
+
+          $ev_day = ($hasEvent) ? $this->eventDayClass : '';
+          $h .= '<td colspan="3" data-datetime="'.$dt.'" class="'.$ev_day.' '.$ev_class.'">';
+          $h .= $this->dateWrap[0];
+          $h .= $evnts;
           $h .= !$hasEvent ? '&nbsp;' : '';
           $h .= $this->dateWrap[1];
           $h .= "</td>";
@@ -361,15 +407,9 @@ class Calendario {
 
           $wd = $this->week_days[$k];
           $time_r = $this->year . '-' . $this->month . '-' . $wd . ' ' . $i . ':00:00';
-          //we also need next month string
-          $time_r_next_month = $this->year . '-' . (string)($this->month + 1) . '-' . $wd . ' ' . $i . ':00:00';
           $min = $t == 0 ? '' : '+30 minute';
           $time_1 = strtotime($time_r . $min);
           $time_2 = strtotime(date('Y-m-d H:i:s', $time_1) . '+30 minute');
-          //events need additional checking, if they are in same week but next month they will not show up
-          //so we need somt additional time rules to check
-          $time_3 = strtotime($time_r_next_month . $min);
-          $time_4 = strtotime(date('Y-m-d H:i:s', $time_3) . '+60 minute');
           $dt = date('Y-m-d H:i:s', $time_1);
           $h .= "<td data-datetime='$dt'>";
           $h .= $this->dateWrap[0];
@@ -378,8 +418,7 @@ class Calendario {
           foreach ($events as $key=>$event) {
             //EVENT TIME AND DATE
             $time_e = strtotime($key);
-            //and the additional check should be done in the below conditional
-            if (($time_e >= $time_1 && $time_e < $time_2) || ($time_e >= $time_3 && $time_e < $time_4)) {
+            if ($time_e >= $time_1 && $time_e < $time_2) {
               $hasEvent = TRUE;
               $h .= $this->buildEvents(FALSE, $event);
             }
@@ -498,5 +537,4 @@ class Calendario {
         $vars .= '&' . $key . '=' . $value;
     return $vars;
   }
-
 }
