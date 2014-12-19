@@ -1,0 +1,21 @@
+{
+    "name": "gallettigr/calendario",
+    "description": "Laravel 5 Calendar",
+    "license" : "MIT",
+    "authors": [
+        {
+            "name": "Giammarco Galletti",
+            "email": "gallettigr@dotsqr.co"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "illuminate/support": "5.0.*"
+    },
+    "autoload": {
+        "psr-0": {
+            "Gallettigr\\Calendario": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
